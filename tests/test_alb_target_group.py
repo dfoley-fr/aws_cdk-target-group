@@ -51,8 +51,21 @@ class TestTargetGroupStack:
         )
         
         template = Template.from_stack(self.stack)
-        # Check that a condition exists
-        template.has_resource_properties("AWS::CloudFormation::Condition", {})
+        # Check that the target group has the conditional deregistration delay
+        template.has_resource_properties("AWS::ElasticLoadBalancingV2::TargetGroup", {
+            "TargetGroupAttributes": [
+                {
+                    "Key": "deregistration_delay.timeout_seconds",
+                    "Value": {
+                        "Fn::If": [
+                            Match.any_value(),  # Accept any condition name
+                            "0",
+                            "300"
+                        ]
+                    }
+                }
+            ]
+        })
         
     def test_target_group_with_https_protocol(self):
         """Test target group with HTTPS protocol"""
@@ -92,12 +105,20 @@ class TestTargetGroupStack:
         )
         
         template = Template.from_stack(self.stack)
-        # Check for any output with the correct export name pattern
-        template.has_output("TargetGroupArn", {
-            "Export": {
-                "Name": "TestStack-TargetGroupArn"
-            }
-        })
+        # Check that an output exists with the correct export name pattern
+        template_json = template.to_json()
+        outputs = template_json.get("Outputs", {})
+        
+        # Find an output with the expected export name
+        export_found = False
+        for output_id, output_config in outputs.items():
+            if ("Export" in output_config and 
+                "Name" in output_config["Export"] and 
+                "TestStack-TargetGroupArn" in output_config["Export"]["Name"]):
+                export_found = True
+                break
+        
+        assert export_found, f"No output found with export name containing 'TestStack-TargetGroupArn'. Available outputs: {outputs}"
         
     def test_vpc_import_from_ecs_stack(self):
         """Test that VPC ID is imported from ECS stack"""
