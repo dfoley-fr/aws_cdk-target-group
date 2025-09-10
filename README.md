@@ -21,7 +21,7 @@ This CDK construct creates an Elastic Load Balancing V2 Target Group with the fo
 - ✅ CloudFormation outputs for target group ARN
 
 ## Installation
-``` pip install alb-listener-rule ```
+``` pip install alb-target-group ```
 ## Usage
 
 ```python
